@@ -278,7 +278,7 @@ class Atm {//class for functioning of ATM
 
 	Atm(){//constructor to initialize fields 
 		try {
-			ifile = new File("D:\\JavaPrograms\\ATM\\src\\input.txt");
+			ifile = new File("input.txt");
 			sc = new Scanner(ifile);
 		}
 		catch(FileNotFoundException e) {
@@ -305,7 +305,7 @@ class Atm {//class for functioning of ATM
 
 	public void writeData(){//write the date to output file which will store accountNo,pin and balance
 		try {//to handle error in case file is missing
-			ofile = new File("D:\\JavaPrograms\\ATM\\src\\output.txt");
+			ofile = new File("output.txt");
 			output = new PrintWriter(ofile);
 		}
 		catch(FileNotFoundException e) {
