@@ -2,7 +2,11 @@ import java.io.*;
 import java.util.*;
 import java.time.*;
 import java.text.SimpleDateFormat;
-
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 class Machine extends Atm {//class for functioning of machine
 	private static final int password = 9845;//password for loading the cash,can be changed by only bank
@@ -275,31 +279,64 @@ class Atm {//class for functioning of ATM
 	protected int cashAvailable = 2000000;//initial cash available
 	File ifile,ofile;//the files
 	PrintWriter output;//to write output
-
-	Atm(){//constructor to initialize fields 
+	Atm(){//constructor to initialize fields
 		try {
-			ifile = new File("input.txt");
+			ifile = new File("D:\\projects\\CaseStudy2_ATM\\src\\input.txt");
 			sc = new Scanner(ifile);
 		}
-		catch(FileNotFoundException e) {
+		catch(FileNotFoundException e){
 			System.out.println(e);
-			System.exit(0);
 		}
 		scan = new Scanner(System.in);
 		load = "00:00";//the loading time at midnight
 		accounts = new HashMap<Integer,Customer>();//initialize the map
-		readData();//read from input file
-		writeData();//output to file
+		createTable();
 	}
-
-	public void readData() {//read the data from input file which will store account No,pin,balance
+	
+	public void createTable() {
+		String url = "jdbc:sqlite:C:/sqlite/customer.db";
+		String sql = "CREATE TABLE IF NOT EXISTS accounts(\n"
+				+ "id integer PRIMARY KEY,\n"
+				+ "AccountNumber integer,\n"
+				+ "PIN integer,\n"
+				+ "Balance integer\n"
+				+ "Savings integer\n"
+				+");";
+		try (Connection conn = DriverManager.getConnection(url)){
+			if(conn != null) {
+				Statement stmt = conn.createStatement();
+				stmt.execute(sql);
+				System.out.println("A new database has been created");
+				store(conn);
+			}
+		}
+		catch(SQLException e) {
+			System.out.println(e.getMessage());
+			System.exit(0);
+		}
+		
+	}
+	
+	public void store(Connection conn) {
+		int x = 1;
 		while(sc.hasNextLine()) {
-			int accountNo = sc.nextInt();//input account number
-			int pin = sc.nextInt();//input pin
-			int balance = sc.nextInt();//input balance
-			boolean isSavings = sc.nextBoolean();
-			Customer customer = new Customer(accountNo,pin,balance,isSavings);//set the customer attributes
-			accounts.put(accountNo,customer);//putting into the map
+			int accountNo = sc.nextInt();
+			int pin = sc.nextInt();
+			int balance = sc.nextInt();
+			int isSavings = (sc.nextBoolean() == true) ? 1 : 0;
+			String insert = "INSERT INTO accounts(AccountNumber,PIN,Balance,Savings) VALUES(?,?,?,?)";
+			try {
+				PreparedStatement pstmt = conn.prepareStatement(insert);
+				pstmt.setInt(1, accountNo);
+				pstmt.setInt(2, pin);
+				pstmt.setInt(3, balance);
+				pstmt.setInt(4, isSavings);
+				pstmt.executeUpdate();
+				++x;
+			}
+			catch(SQLException e) {
+				System.out.println(e.getMessage());
+			}
 		}
 	}
 
