@@ -14,7 +14,7 @@ public class Database {
 	static Connection conn;
 	Database(){
 		try {
-			ifile = new File("D:\\projects\\CaseStudy2_ATM\\src\\input.txt");
+			ifile = new File("input.txt");
 			sc = new Scanner(ifile);
 		}
 		catch(FileNotFoundException e){
