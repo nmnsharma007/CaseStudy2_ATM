@@ -13,6 +13,7 @@ public class Bank {
 			if(n == PIN) {//if pin was correct , start the ATM
 				Atm atm = new Atm();
 				atm.startMachine();
+				break;
 			}
 			else if(i > 1)
 				System.out.println("Incorrect PIN. You have " + (i-1)  + " tries remaining");

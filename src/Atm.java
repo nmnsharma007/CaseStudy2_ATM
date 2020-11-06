@@ -1,12 +1,6 @@
-import java.io.*;
 import java.util.*;
 import java.time.*;
 import java.text.SimpleDateFormat;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
 
 class Machine extends Atm {//class for functioning of machine
 	private static final int password = 9845;//password for loading the cash,can be changed by only bank
@@ -78,11 +72,21 @@ class Machine extends Atm {//class for functioning of machine
 	public void currentBalance() {//get the current balance of the customer
 		System.out.println("Enter the account number");
 			int number = scan.nextInt();//get the account number 
-			if(accounts.containsKey(number)) {//if account number exists
-				accounts.get(number).showBalance();//show the balance
+			int[] customer = database.fetch(number);
+			if(customer[0] == -1)
+				System.out.println("The entered account number does not exist");
+			else {
+				System.out.println("############################################");
+				System.out.println();
+				System.out.println("             National Bank                ");
+				SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy  HH:mm:ss");  
+				Date date = new Date();
+				System.out.println(formatter.format(date) + " ");
+				System.out.println("Account type : " + ((customer[3] == 1) ? "Savings" : "Business"));
+				System.out.println("Your Current Balance: " + customer[2]);
+				System.out.println();
+				System.out.println("############################################");
 			}
-			else
-				System.out.println("The entered account number is incorrect");
 	}
 	
 }
@@ -98,11 +102,19 @@ class Withdraw extends Atm {//class for withdrawal process
 		if(n == 1) {//if savings account
 			System.out.println("Please enter your account number");
 			int number = scan.nextInt();//get the account number 
-			if(accounts.containsKey(number)) {//if account number exists
-				Customer customer = accounts.get(number);
-				if(customer.checkSavings())//if is savings account or not
-					takeCash(customer,limit);//call method to take out cash
-				else{
+			int[] customer = database.fetch(number);
+			if(customer[0] == -1) {
+				System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+				System.out.println();
+				System.out.println("The entered account number is wrong");
+				System.out.println();
+				System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+			}
+			else {
+				if(customer[3] == 1) {
+					takeCash(customer,limit);
+				}
+				else {
 					System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 					System.out.println();
 					System.out.println("The entered account number is not linked to savings account");
@@ -110,53 +122,46 @@ class Withdraw extends Atm {//class for withdrawal process
 					System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 				}
 			}
-			else{
-				System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-				System.out.println();
-				System.out.println("The entered account number is wrong");
-				System.out.println();
-				System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-			}
 		}
 		else if(n == 2) {//if business account
 			System.out.println("Please enter your account number");
 			int number = scan.nextInt();//get the account number 
-			if(accounts.containsKey(number)) {//if account number exists
-				Customer customer = accounts.get(number);
-				if(!customer.checkSavings())//it is savings or not
-					takeCash(customer,limit);//call method to take out cash
-				else{
-					System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-					System.out.println();
-					System.out.println("The entered account number is not linked to business account");
-					System.out.println();
-					System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
-				}
-			}
-			else{
+			int[] customer = database.fetch(number);
+			if(customer[0] == -1) {
 				System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 				System.out.println();
 				System.out.println("The entered account number is wrong");
 				System.out.println();
 				System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 			}
+			else {
+				if(customer[3] == 0) {
+					takeCash(customer);
+				}
+				else {
+					System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+					System.out.println();
+					System.out.println("The entered account number is not linked to bussiness account");
+					System.out.println();
+					System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+				}
+			}
 		}
 	}
 	
-	public void takeCash(Customer customer,int limit) {//take cash when it is savings account
+	public void takeCash(int[] customer,int limit) {//take cash when it is savings account
 		System.out.println("Enter your 5 digit PIN");
 		int pin = scan.nextInt();//get the pin from customer
-		if(customer.checkPin(pin)) {//check if pin is correct
+		if(customer[1] == pin) {//check if pin is correct
 				System.out.println("Enter the withdrawal amount. Maximum allowed amount is " + limit + " and minimum amount is 10");
 				System.out.println("Press a number from 1 to 9 to exit");
 				int amount = scan.nextInt();//get the amount
-				if(amount >= 10 && customer.isAvailable(amount)) {//if customer has enough balance
+				if(amount >= 10 && customer[2] >= amount) {//if customer has enough balance
 					if(cashAvailable >= amount) {//if machine has enough money
 						if(amount <= limit) {//if account is within limit
-							customer.setBalance(-amount);//set the balance
-							customer.printReceipt(-amount);//print the receipt
-							accounts.put(customer.getAccountNo(), customer);//put  update information back into the map
-							super.writeData();//write to output file
+							customer[2] -= amount;
+							database.update(customer[0],customer[2]);
+							super.printReceipt(customer, -amount);
 						}
 						else{
 							System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
@@ -174,7 +179,7 @@ class Withdraw extends Atm {//class for withdrawal process
 						System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 					}
 				}
-				else if(!customer.isAvailable(amount)){
+				else if(customer[2] < amount){
 					System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 					System.out.println();
 					System.out.println("You don't have enough balance to withdraw the entered amount");
@@ -192,19 +197,18 @@ class Withdraw extends Atm {//class for withdrawal process
 		}
 	}
 	
-	public void takeCash(Customer customer) {//take cash when it is business account
+	public void takeCash(int[] customer) {//take cash when it is business account
 		System.out.println("Enter your 5 digit PIN");
 		int pin = scan.nextInt();//take the pin
-		if(customer.checkPin(pin)) {//check if pin is correct
+		if(customer[1] == pin) {//check if pin is correct
 				System.out.println("Enter the withdrawal amount.There is no upper limit but lower limit is 10");
 				System.out.println("Press a number from 1 to 9 to exit");
 				int amount = scan.nextInt();//enter the amount
-				if(amount >= 10 && customer.isAvailable(amount)) {//if customer has enough balance
+				if(amount >= 10 && customer[2] >= amount) {//if customer has enough balance
 					if(cashAvailable >= amount) {//is machine has enough money
-						customer.setBalance(-amount);//set balance of customer
-						customer.printReceipt(-amount);//print bank receipt
-						accounts.put(customer.getAccountNo(), customer);//put back into map
-						super.writeData();//write to output file
+						customer[2] -= amount;
+						database.update(customer[0], customer[2]);
+						super.printReceipt(customer, -amount);
 					}
 					else{
 						System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
@@ -214,7 +218,7 @@ class Withdraw extends Atm {//class for withdrawal process
 						System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 					}
 				}
-				else if(!customer.isAvailable(amount)){//print statements are enough to explain these cases
+				else if(customer[2] < amount){//print statements are enough to explain these cases
 					System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 					System.out.println();
 					System.out.println("You don't have enough balance to withdraw the entered amount");
@@ -240,17 +244,16 @@ class Deposit extends Atm {//class for deposit
 	public void giveCash(){//method to deposit the cash
 		System.out.println("Enter your account number to deposit cash");
 		int number = scan.nextInt();//take the account number
-		if(accounts.containsKey(number)) {//if account number exists
+		int[] customer = database.fetch(number);
+		if(customer[0] == -1) {//if account number exists
 			System.out.println("Enter the amount you want to enter");
 			System.out.println("The lower limit is 10 and upper limit is " + limit);
 			System.out.println("Press any number between from 1 to 9 to exit");
 				int amount = scan.nextInt();//enter the amount
 				if(amount <= limit && amount > 9) {//if within allowed limits
-					Customer customer = accounts.get(number);//get customer information for update
-					customer.setBalance(amount);//set the new balance
-					customer.printReceipt(amount);//print the bank receipt
-					accounts.put(number,customer);//put back in map
-					super.writeData();//write to output file
+					customer[2] += amount;
+					database.update(number,customer[2]);
+					super.printReceipt(customer, amount);
 				} 
 				else if(amount > limit){//if outside limits
 					System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
@@ -272,92 +275,39 @@ class Deposit extends Atm {//class for deposit
 }
 
 class Atm {//class for functioning of ATM
-	
-	static Map<Integer,Customer> accounts;//map to store customer information
-	Scanner scan,sc;
+
+	Scanner scan;
 	protected String load;//loading time 
 	protected int cashAvailable = 2000000;//initial cash available
-	File ifile,ofile;//the files
-	PrintWriter output;//to write output
+	static Database database;
 	Atm(){//constructor to initialize fields
-		try {
-			ifile = new File("D:\\projects\\CaseStudy2_ATM\\src\\input.txt");
-			sc = new Scanner(ifile);
-		}
-		catch(FileNotFoundException e){
-			System.out.println(e);
-		}
 		scan = new Scanner(System.in);
 		load = "00:00";//the loading time at midnight
-		accounts = new HashMap<Integer,Customer>();//initialize the map
-		createTable();
-	}
-	
-	public void createTable() {
-		String url = "jdbc:sqlite:C:/sqlite/customer.db";
-		String sql = "CREATE TABLE IF NOT EXISTS accounts(\n"
-				+ "id integer PRIMARY KEY,\n"
-				+ "AccountNumber integer,\n"
-				+ "PIN integer,\n"
-				+ "Balance integer\n"
-				+ "Savings integer\n"
-				+");";
-		try (Connection conn = DriverManager.getConnection(url)){
-			if(conn != null) {
-				Statement stmt = conn.createStatement();
-				stmt.execute(sql);
-				System.out.println("A new database has been created");
-				store(conn);
-			}
-		}
-		catch(SQLException e) {
-			System.out.println(e.getMessage());
-			System.exit(0);
-		}
-		
-	}
-	
-	public void store(Connection conn) {
-		int x = 1;
-		while(sc.hasNextLine()) {
-			int accountNo = sc.nextInt();
-			int pin = sc.nextInt();
-			int balance = sc.nextInt();
-			int isSavings = (sc.nextBoolean() == true) ? 1 : 0;
-			String insert = "INSERT INTO accounts(AccountNumber,PIN,Balance,Savings) VALUES(?,?,?,?)";
-			try {
-				PreparedStatement pstmt = conn.prepareStatement(insert);
-				pstmt.setInt(1, accountNo);
-				pstmt.setInt(2, pin);
-				pstmt.setInt(3, balance);
-				pstmt.setInt(4, isSavings);
-				pstmt.executeUpdate();
-				++x;
-			}
-			catch(SQLException e) {
-				System.out.println(e.getMessage());
-			}
-		}
-	}
-
-	public void writeData(){//write the date to output file which will store accountNo,pin and balance
-		try {//to handle error in case file is missing
-			ofile = new File("output.txt");
-			output = new PrintWriter(ofile);
-		}
-		catch(FileNotFoundException e) {
-			System.out.println(e);
-			System.exit(0);
-		}
-		for(Customer customer : accounts.values()){
-			output.println(customer.getAccountNo() + " " + customer.getPin() + " " + customer.getBalance() + " " + customer.checkSavings());
-		}
-		output.close();
 	}
 
 	public void startMachine(){//start the machine
 		Machine machine = new Machine();
+		database = new Database();
+		database.createTable();//call the database class
 		machine.start();//call the start method
+	}
+	
+	public void printReceipt(int[] customer,int amount) {//print the receipt
+		System.out.println("***********************************************************");
+		System.out.println();
+		System.out.println("National Bank");
+		SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");  
+		Date date = new Date();
+		System.out.println("Account type : " + ((customer[3] == 1) ? "Savings" : "Business"));
+	    System.out.println(formatter.format(date) + " ");
+		if(amount < 0)
+			System.out.println("Amount withdrawn: " + (-amount));
+		else
+			System.out.println("Amount deposited: " + amount);
+		System.out.println("Your current balance: " + customer[2]);
+		System.out.println("Thank you for using our bank");
+		System.out.println();
+		System.out.println("***********************************************************");
 	}
 
 }
