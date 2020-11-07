@@ -1,7 +1,9 @@
 # CaseStudy2_ATM
 
-The java project is based on Case Study 2 which is working of an ATM machine.It is fairly simple to run after cloning. 
-The code is distributed across 3 classes which are Customer,ATM,Bank.
+The java project is based on Case Study 2 which is working of an ATM machine. 
 The Bank class is the one from where the code will start to run.
-Only thing to note is that the input.txt and output.txt file locations may need to be set in the Atm class according to the local system so that the program is able to locate them while execution. 
-Now, the program is integerated with sqlite database.
+Now the code contains 3 additional functionalities:
+1) The program is integerated with sqlite database.
+2) Methods for changing pin and basic details has been added
+3) Phone number has been added to get OTP which is used as two-step verification before any transaction
+done.
