@@ -44,7 +44,7 @@ class Atm {//class for functioning of ATM
 		else
 			System.out.println("Amount deposited: " + amount);
 		System.out.println("Your current balance: " + customer[2]);
-		System.out.println("Thank you for using our bank");
+		System.out.println("Thank you for using our bank.");
 		System.out.println();
 		System.out.println("***********************************************************");
 	}
