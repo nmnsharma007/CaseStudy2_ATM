@@ -23,12 +23,13 @@ public class Database {
 	}
 	
 	public void createTable() {
-		String url = "jdbc:sqlite:C:/sqlite/customer.db";
+		String url = "jdbc:sqlite:D:/projects/CaseStudy2_ATM/lib/customer.db";
 		String sql = "CREATE TABLE IF NOT EXISTS accounts(\n"
 				+ "AccountNumber integer PRIMARY KEY,\n"
 				+ "PIN integer,\n"
 				+ "Balance integer,\n"
-				+ "Savings integer\n"
+				+ "Savings integer,\n"
+				+ "Phone integer\n"
 				+");";
 		try {
 			conn = DriverManager.getConnection(url);
@@ -41,7 +42,8 @@ public class Database {
 					int pin = sc.nextInt();
 					int balance = sc.nextInt();
 					int isSavings = (sc.nextBoolean() == true) ? 1 : 0;
-					store(accountNo,pin,balance,isSavings);
+					int phone = sc.nextInt();
+					store(accountNo,pin,balance,isSavings,phone);
 				}
 			}
 		}
@@ -51,14 +53,15 @@ public class Database {
 		}
 	}
 	
-	public void store(int accountNo,int pin,int balance,int isSavings) {
-			String insert = "INSERT INTO Accounts(AccountNumber,PIN,Balance,Savings) VALUES(?,?,?,?)";
+	public void store(int accountNo,int pin,int balance,int isSavings,int phone) {
+			String insert = "INSERT INTO Accounts(AccountNumber,PIN,Balance,Savings,Phone) VALUES(?,?,?,?,?)";
 			try {
 				PreparedStatement pstmt = conn.prepareStatement(insert);
 				pstmt.setInt(1, accountNo);
 				pstmt.setInt(2, pin);
 				pstmt.setInt(3, balance);
 				pstmt.setInt(4, isSavings);
+				pstmt.setInt(5, phone);
 				pstmt.executeUpdate();
 			}
 			catch(SQLException e) {
@@ -66,11 +69,37 @@ public class Database {
 			}
 	}
 
-	public void update(int accountNo,int balance) {
+	public void updateBalance(int accountNo,int balance) {
 		String change = "UPDATE accounts SET Balance = ? WHERE AccountNumber = ?";
 		try {
 			PreparedStatement stmt = conn.prepareStatement(change);
 			stmt.setInt(1,balance);
+			stmt.setInt(2, accountNo);
+			stmt.executeUpdate();
+		}
+		catch(SQLException e) {
+			System.out.println(e.getMessage());
+		}
+	}
+	
+	public void updatePin(int accountNo,int pin) {
+		String change = "UPDATE accounts SET PIN = ? WHERE AccountNumber = ?";
+		try {
+			PreparedStatement stmt = conn.prepareStatement(change);
+			stmt.setInt(1,pin);
+			stmt.setInt(2, accountNo);
+			stmt.executeUpdate();
+		}
+		catch(SQLException e) {
+			System.out.println(e.getMessage());
+		}
+	}
+	
+	public void updatePhone(int accountNo,int phoneNumber) {
+		String change = "UPDATE accounts SET Phone = ? WHERE AccountNumber = ?";
+		try {
+			PreparedStatement stmt = conn.prepareStatement(change);
+			stmt.setInt(1,phoneNumber);
 			stmt.setInt(2, accountNo);
 			stmt.executeUpdate();
 		}
